@@ -1,0 +1,38 @@
+[package]
+name = "advent-of-code-2025"
+version = "0.1.0"
+authors = ["bram-inniger"]
+edition = "2024"
+description = "Repository to store solutions for Advent of Code"
+readme = "README.md"
+homepage = "https://inniger.be"
+repository = "https://github.com/bram-inniger/advent-of-code-2025-rust"
+license = " GPL-3.0-or-later"
+keywords = ["advent-of-code"]
+categories = ["algorithms", "data-structures", "mathematics"]
+
+[dependencies]
+chrono = "0.4.42"
+#hex = "0.4.3"
+#indexmap = "2.12.0"
+itertools = "0.14.0"
+#md-5 = "0.11.0-rc.3"
+#radix-heap = "0.4.2"
+#rand = "0.10.0-rc.5"
+#rayon = "1.11.0"
+#regex = "1.12.2"
+rustc-hash = "2.1.1"
+#serde_json = "1.0.145"
+
+#[target.'cfg(target_os = "macos")'.dependencies]
+#z3 = { version = "0.12.1", features = ["static-link-z3"] }
+#
+#[target.'cfg(target_os = "linux")'.dependencies]
+#z3 = "0.12.1"
+
+[dev-dependencies]
+criterion = { version = "0.8.0", features = ["html_reports"] }
+
+[[bench]]
+name = "day_01_bench"
+harness = false
