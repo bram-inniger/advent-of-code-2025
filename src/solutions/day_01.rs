@@ -1,6 +1,16 @@
 use itertools::Itertools;
 
 pub fn solve_1(rotations: &[&str]) -> u32 {
+    let (zero_end_positions, _) = solve(rotations);
+    zero_end_positions
+}
+
+pub fn solve_2(rotations: &[&str]) -> u32 {
+    let (_, zero_positions) = solve(rotations);
+    zero_positions
+}
+
+fn solve(rotations: &[&str]) -> (u32, u32) {
     let rotations = rotations
         .iter()
         .map(|rotation| Rotation::new(rotation))
@@ -8,6 +18,7 @@ pub fn solve_1(rotations: &[&str]) -> u32 {
 
     let mut position = 50;
     let mut zero_positions = 0;
+    let mut zero_end_positions = 0;
 
     for rotation in &rotations {
         for _ in 0..rotation.distance {
@@ -27,14 +38,18 @@ pub fn solve_1(rotations: &[&str]) -> u32 {
                     }
                 }
             }
+
+            if position == 0 {
+                zero_positions += 1;
+            }
         }
 
         if position == 0 {
-            zero_positions += 1;
+            zero_end_positions += 1;
         }
     }
 
-    zero_positions
+    (zero_end_positions, zero_positions)
 }
 
 #[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Hash)]
@@ -89,5 +104,23 @@ mod tests {
             .collect_vec();
 
         assert_eq!(1_123, solve_1(&input));
+    }
+
+    #[test]
+    fn day_01_part_02_sample() {
+        let sample = vec![
+            "L68", "L30", "R48", "L5", "R60", "L55", "L1", "L99", "R14", "L82",
+        ];
+
+        assert_eq!(6, solve_2(&sample));
+    }
+
+    #[test]
+    fn day_01_part_02_solution() {
+        let input = include_str!("../../inputs/day_01.txt")
+            .lines()
+            .collect_vec();
+
+        assert_eq!(6_695, solve_2(&input));
     }
 }
