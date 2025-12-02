@@ -2,26 +2,20 @@ use itertools::Itertools;
 use rayon::prelude::*;
 
 pub fn solve_1(id_ranges: &str) -> u64 {
-    let is_invalid_simple = |id: &str| id.len() % 2 == 0 && id[..id.len() / 2] == id[id.len() / 2..];
+    let is_invalid_simple =
+        |id: &str| id.len() % 2 == 0 && id[..id.len() / 2] == id[id.len() / 2..];
     solve(id_ranges, is_invalid_simple)
 }
 
 pub fn solve_2(id_ranges: &str) -> u64 {
     let is_invalid_complex = |id: &str| {
-        (1..=id.len() / 2).any(|rep_len| {
-            if id.len() % rep_len != 0 {
-                return false;
-            }
-
-            let rep_count = id.len() / rep_len;
-            for idx in 1..rep_count {
-                if id[0..rep_len] != id[idx * rep_len..(idx + 1) * rep_len] {
-                    return false;
-                }
-            }
-
-            true
-        })
+        (1..=id.len() / 2)
+            .filter(|&rep_len| id.len() % rep_len == 0)
+            .any(|rep_len| {
+                let id = id.as_bytes();
+                let first = &id[..rep_len];
+                id[rep_len..].chunks(rep_len).all(|chunk| first == chunk)
+            })
     };
     solve(id_ranges, is_invalid_complex)
 }
