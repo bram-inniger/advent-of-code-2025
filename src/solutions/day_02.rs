@@ -1,3 +1,7 @@
+use itertools::Itertools;
+use rayon::iter::IntoParallelRefIterator;
+use rayon::iter::ParallelIterator;
+
 pub fn solve_1(id_ranges: &str) -> u64 {
     let is_invalid = |id: &str| id.len() % 2 == 0 && id[..id.len() / 2] == id[id.len() / 2..];
     solve(id_ranges, is_invalid)
@@ -23,9 +27,11 @@ pub fn solve_2(id_ranges: &str) -> u64 {
     solve(id_ranges, is_invalid)
 }
 
-fn solve(id_ranges: &str, is_invalid: impl Fn(&str) -> bool) -> u64 {
+fn solve(id_ranges: &str, is_invalid: impl Fn(&str) -> bool + Sync) -> u64 {
     id_ranges
         .split(",")
+        .collect_vec()
+        .par_iter()
         .map(|id_range| {
             let (start, end) = id_range
                 .split_once("-")
@@ -33,7 +39,7 @@ fn solve(id_ranges: &str, is_invalid: impl Fn(&str) -> bool) -> u64 {
                 .unwrap();
             start..=end
         })
-        .flat_map(|range| {
+        .flat_map_iter(|range| {
             range.filter(|product_id| {
                 let id = product_id.to_string();
                 is_invalid(&id)

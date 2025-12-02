@@ -9,6 +9,7 @@ dependencies = [
  "chrono",
  "criterion",
  "itertools 0.14.0",
+ "rayon",
  "rustc-hash",
 ]
 
