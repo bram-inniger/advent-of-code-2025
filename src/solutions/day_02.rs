@@ -1,30 +1,29 @@
 use itertools::Itertools;
-use rayon::iter::IntoParallelRefIterator;
-use rayon::iter::ParallelIterator;
+use rayon::prelude::*;
 
 pub fn solve_1(id_ranges: &str) -> u64 {
-    let is_invalid = |id: &str| id.len() % 2 == 0 && id[..id.len() / 2] == id[id.len() / 2..];
-    solve(id_ranges, is_invalid)
+    let is_invalid_simple = |id: &str| id.len() % 2 == 0 && id[..id.len() / 2] == id[id.len() / 2..];
+    solve(id_ranges, is_invalid_simple)
 }
 
 pub fn solve_2(id_ranges: &str) -> u64 {
-    let is_invalid = |id: &str| {
-        for rep_len in 1..=id.len() / 2 {
+    let is_invalid_complex = |id: &str| {
+        (1..=id.len() / 2).any(|rep_len| {
             if id.len() % rep_len != 0 {
-                continue;
+                return false;
             }
 
             let rep_count = id.len() / rep_len;
-            let repeated = id[0..rep_len].repeat(rep_count);
-
-            if id == repeated {
-                return true;
+            for idx in 1..rep_count {
+                if id[0..rep_len] != id[idx * rep_len..(idx + 1) * rep_len] {
+                    return false;
+                }
             }
-        }
 
-        false
+            true
+        })
     };
-    solve(id_ranges, is_invalid)
+    solve(id_ranges, is_invalid_complex)
 }
 
 fn solve(id_ranges: &str, is_invalid: impl Fn(&str) -> bool + Sync) -> u64 {
