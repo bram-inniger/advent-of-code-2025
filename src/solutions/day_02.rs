@@ -1,26 +1,16 @@
+use fancy_regex::Regex;
 use itertools::Itertools;
 use rayon::prelude::*;
 
 pub fn solve_1(id_ranges: &str) -> u64 {
-    let is_invalid_simple =
-        |id: &str| id.len() % 2 == 0 && id[..id.len() / 2] == id[id.len() / 2..];
-    solve(id_ranges, is_invalid_simple)
+    solve(id_ranges, &Regex::new(r"^(.+)\1{1}$").unwrap())
 }
 
 pub fn solve_2(id_ranges: &str) -> u64 {
-    let is_invalid_complex = |id: &str| {
-        (1..=id.len() / 2)
-            .filter(|&rep_len| id.len() % rep_len == 0)
-            .any(|rep_len| {
-                let id = id.as_bytes();
-                let first = &id[..rep_len];
-                id[rep_len..].chunks(rep_len).all(|chunk| first == chunk)
-            })
-    };
-    solve(id_ranges, is_invalid_complex)
+    solve(id_ranges, &Regex::new(r"^(.+)\1+$").unwrap())
 }
 
-fn solve(id_ranges: &str, is_invalid: impl Fn(&str) -> bool + Sync) -> u64 {
+fn solve(id_ranges: &str, re: &Regex) -> u64 {
     id_ranges
         .split(",")
         .collect_vec()
@@ -33,10 +23,7 @@ fn solve(id_ranges: &str, is_invalid: impl Fn(&str) -> bool + Sync) -> u64 {
             start..=end
         })
         .flat_map_iter(|range| {
-            range.filter(|product_id| {
-                let id = product_id.to_string();
-                is_invalid(&id)
-            })
+            range.filter(|product_id| re.is_match(&product_id.to_string()).unwrap())
         })
         .sum()
 }
