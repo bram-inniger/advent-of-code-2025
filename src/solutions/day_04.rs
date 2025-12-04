@@ -1,7 +1,24 @@
 use rustc_hash::FxHashSet;
 
 pub fn solve_1(department: &[&str]) -> usize {
-    Department::new(department).accessible_paper_rolls()
+    let (_, rolls_removed) = Department::new(department).remove_paper_rolls();
+    rolls_removed
+}
+
+pub fn solve_2(department: &[&str]) -> usize {
+    let mut department = Department::new(department);
+    let mut total_rolls_removed = 0;
+
+    loop {
+        let (new_department, rolls_removed) = department.remove_paper_rolls();
+
+        if rolls_removed == 0 {
+            return total_rolls_removed;
+        }
+
+        department = new_department;
+        total_rolls_removed += rolls_removed;
+    }
 }
 
 #[derive(Debug, Clone)]
@@ -31,7 +48,7 @@ impl Department {
         Self { paper_rolls }
     }
 
-    pub fn accessible_paper_rolls(&self) -> usize {
+    pub fn remove_paper_rolls(&self) -> (Self, usize) {
         let neighbour_deltas = vec![
             (1, 0),
             (1, 1),
@@ -43,8 +60,10 @@ impl Department {
             (1, -1),
         ];
 
-        self.paper_rolls
+        let paper_rolls = self
+            .paper_rolls
             .iter()
+            .copied()
             .filter(|Position { x, y }| {
                 neighbour_deltas
                     .iter()
@@ -56,9 +75,13 @@ impl Department {
                         self.paper_rolls.contains(&neighbour)
                     })
                     .count()
-                    < 4
+                    >= 4
             })
-            .count()
+            .collect::<FxHashSet<_>>();
+        let old_rolls_count = self.paper_rolls.len();
+        let new_rolls_count = paper_rolls.len();
+
+        (Self { paper_rolls }, old_rolls_count - new_rolls_count)
     }
 }
 
@@ -93,5 +116,32 @@ mod tests {
             .collect_vec();
 
         assert_eq!(1_363, solve_1(&input));
+    }
+
+    #[test]
+    fn day_04_part_02_sample() {
+        let sample = vec![
+            "..@@.@@@@.",
+            "@@@.@.@.@@",
+            "@@@@@.@.@@",
+            "@.@@@@..@.",
+            "@@.@@@@.@@",
+            ".@@@@@@@.@",
+            ".@.@.@.@@@",
+            "@.@@@.@@@@",
+            ".@@@@@@@@.",
+            "@.@.@@@.@.",
+        ];
+
+        assert_eq!(43, solve_2(&sample));
+    }
+
+    #[test]
+    fn day_04_part_02_solution() {
+        let input = include_str!("../../inputs/day_04.txt")
+            .lines()
+            .collect_vec();
+
+        assert_eq!(8_184, solve_2(&input));
     }
 }
