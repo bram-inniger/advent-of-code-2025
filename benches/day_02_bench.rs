@@ -1,5 +1,5 @@
-use criterion::{criterion_group, criterion_main, Criterion};
 use advent_of_code_2025::solutions::*;
+use criterion::{Criterion, criterion_group, criterion_main};
 
 /// Run this benchmark using
 /// ```shell
