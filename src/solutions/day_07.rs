@@ -62,19 +62,10 @@ impl Manifold {
 
             if self.splitters.contains(&position) {
                 splitters.insert(position);
-                to_visit.push(Position {
-                    x: position.x + 1,
-                    y: position.y,
-                });
-                to_visit.push(Position {
-                    x: position.x - 1,
-                    y: position.y,
-                });
+                to_visit.push(Position::of(position.x + 1, position.y));
+                to_visit.push(Position::of(position.x - 1, position.y));
             } else {
-                to_visit.push(Position {
-                    x: position.x,
-                    y: position.y + 1,
-                });
+                to_visit.push(Position::of(position.x, position.y + 1));
             }
         }
 
