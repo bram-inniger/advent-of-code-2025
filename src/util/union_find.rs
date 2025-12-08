@@ -1,10 +1,11 @@
 use itertools::Itertools;
 use std::cmp::Ordering;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct UnionFind {
     parents: Vec<usize>,
     ranks: Vec<usize>,
+    set_count: usize,
 }
 
 impl UnionFind {
@@ -12,6 +13,7 @@ impl UnionFind {
         UnionFind {
             parents: (0..n).collect(),
             ranks: vec![0; n],
+            set_count: n,
         }
     }
 
@@ -37,7 +39,12 @@ impl UnionFind {
                     self.ranks[root_1] += 1;
                 }
             }
+            self.set_count -= 1;
         }
+    }
+    
+    pub fn set_count(&self) -> usize {
+        self.set_count
     }
 
     pub fn sets(&mut self) -> Vec<Vec<usize>> {
