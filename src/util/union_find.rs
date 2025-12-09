@@ -42,7 +42,7 @@ impl UnionFind {
             self.set_count -= 1;
         }
     }
-    
+
     pub fn set_count(&self) -> usize {
         self.set_count
     }

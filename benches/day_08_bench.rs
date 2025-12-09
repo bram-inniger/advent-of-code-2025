@@ -1,5 +1,5 @@
 use advent_of_code_2025::solutions::*;
-use criterion::{criterion_group, criterion_main, Criterion};
+use criterion::{Criterion, criterion_group, criterion_main};
 use itertools::Itertools;
 
 /// Run this benchmark using
