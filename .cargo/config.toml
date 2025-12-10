@@ -1,2 +1,3 @@
 [env]
-#Z3_SYS_Z3_HEADER = "/opt/homebrew/include/z3.h"
+Z3_SYS_Z3_HEADER = "/opt/homebrew/opt/z3/include/z3.h"
+PKG_CONFIG_PATH = "/opt/homebrew/opt/z3/lib/pkgconfig"
