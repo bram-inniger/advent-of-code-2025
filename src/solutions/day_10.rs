@@ -1,11 +1,11 @@
 use itertools::Itertools;
+use rayon::prelude::*;
 use regex::Regex;
 use rustc_hash::FxHashSet;
 use std::collections::VecDeque;
 use std::sync::LazyLock;
-use rayon::prelude::*;
-use z3::ast::Int;
 use z3::Optimize;
+use z3::ast::Int;
 
 pub fn solve_1(machines: &[&str]) -> u32 {
     machines
@@ -103,7 +103,9 @@ impl Machine {
                 .iter()
                 .enumerate()
                 .flat_map(|(button_idx, button)| {
-                    button.iter().map(move |&joltage_idx| (joltage_idx, button_idx))
+                    button
+                        .iter()
+                        .map(move |&joltage_idx| (joltage_idx, button_idx))
                 })
                 .into_group_map();
 
@@ -123,15 +125,14 @@ impl Machine {
         all_presses
             .iter()
             .for_each(|presses| opt.assert(&presses.ge(0)));
-        (0..self.joltages.len())
-            .for_each(|joltage_idx| {
-                let joltage = self.joltages[joltage_idx];
-                let buttons = buttons_per_joltage[joltage_idx]
-                    .iter()
-                    .map(|&button_idx| all_presses[button_idx].clone())
-                    .collect_vec();
-                opt.assert(&Int::add(&buttons).eq(Int::from_u64(joltage)));
-            });
+        (0..self.joltages.len()).for_each(|joltage_idx| {
+            let joltage = self.joltages[joltage_idx];
+            let buttons = buttons_per_joltage[joltage_idx]
+                .iter()
+                .map(|&button_idx| all_presses[button_idx].clone())
+                .collect_vec();
+            opt.assert(&Int::add(&buttons).eq(Int::from_u64(joltage)));
+        });
         opt.assert(&total_presses.eq(Int::add(&all_presses)));
 
         // Solve and return the result
