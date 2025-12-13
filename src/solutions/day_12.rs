@@ -1,61 +1,66 @@
 use itertools::Itertools;
+use rayon::prelude::*;
 use regex::Regex;
-use rustc_hash::FxHashMap;
 use std::sync::LazyLock;
 
-pub fn solve_1(summary: &str, simple: bool) -> usize {
+pub fn solve_1(summary: &str, heuristic: bool) -> usize {
     let parts = summary.split("\n\n").collect_vec();
-    let _shapes = parts[0..parts.len() - 1]
+    let shapes = parts[0..parts.len() - 1]
         .iter()
         .map(|shape| Shape::new(shape))
-        .map(|shape| (shape.idx, shape))
-        .collect::<FxHashMap<_, _>>();
+        .collect_vec();
     let regions = parts[parts.len() - 1]
         .split('\n')
         .map(|region| Region::new(region))
         .collect_vec();
 
-    if !simple {
-        2 // TODO implement proper backtracking shape fitting
-    } else {
-        regions
-            .iter()
-            .filter(|region| {
-                let shapes_max = (region.width / 3) * (region.height / 3);
-                let shapes_required = region.shape_counts.iter().sum::<u32>();
-
-                shapes_max >= shapes_required
-            })
-            .count()
-    }
+    regions
+        .par_iter()
+        .filter(|region| {
+            if heuristic {
+                region.can_fit_heuristic()
+            } else {
+                region.can_fit(&shapes)
+            }
+        })
+        .count()
 }
 
 pub fn solve_2() {
     // Decorate the North Pole
 }
 
-#[derive(Debug, Clone)]
+const DIM: usize = 3;
+
+#[derive(Debug, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
 struct Shape {
-    idx: usize,
-    _grid: [[bool; 3]; 3],
+    grid: [[bool; DIM]; DIM],
+    coordinates: Vec<Coordinate>,
+}
+
+#[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Hash)]
+struct Coordinate {
+    row: usize,
+    col: usize,
 }
 
 #[derive(Debug, Clone)]
 struct Region {
-    width: u32,
-    height: u32,
-    shape_counts: Vec<u32>,
+    width: usize,
+    height: usize,
+    shape_counts: Vec<usize>,
+}
+
+#[derive(Debug, Clone, Copy, Ord, PartialOrd, Eq, PartialEq, Hash)]
+enum Placement {
+    Place,
+    Remove,
 }
 
 impl Shape {
-    fn new(shape: &str) -> Self {
-        static IDX_RE: LazyLock<Regex> = LazyLock::new(|| Regex::new(r"^(?<idx>\d+):$").unwrap());
-
-        let lines = shape.lines().collect_vec();
-
-        let idx = IDX_RE.captures(lines[0]).unwrap()["idx"].parse().unwrap();
-        let _grid = lines
-            .iter()
+    pub fn new(shape: &str) -> Self {
+        let grid = shape
+            .lines()
             .skip(1)
             .map(|line| {
                 line.chars()
@@ -72,12 +77,69 @@ impl Shape {
             .try_into()
             .unwrap();
 
-        Self { idx, _grid }
+        Self {
+            grid,
+            coordinates: Self::coordinates(&grid),
+        }
+    }
+
+    pub fn transformations(&self) -> Vec<Self> {
+        let mut transformations = vec![];
+        let mut current = self.clone();
+
+        for _ in 0..4 {
+            transformations.push(current.clone());
+            current = current.rotate_90();
+        }
+
+        current = self.flip_horizontal();
+
+        for _ in 0..4 {
+            transformations.push(current.clone());
+            current = current.rotate_90();
+        }
+
+        transformations.sort();
+        transformations.dedup();
+        transformations
+    }
+
+    fn rotate_90(&self) -> Self {
+        let mut new_grid = [[false; DIM]; DIM];
+        for row in 0..DIM {
+            for col in 0..DIM {
+                new_grid[col][2 - row] = self.grid[row][col];
+            }
+        }
+        Self {
+            grid: new_grid,
+            coordinates: Self::coordinates(&new_grid),
+        }
+    }
+
+    fn flip_horizontal(&self) -> Self {
+        let mut new_grid = [[false; DIM]; DIM];
+        for row in 0..DIM {
+            for col in 0..DIM {
+                new_grid[row][2 - col] = self.grid[row][col];
+            }
+        }
+        Self {
+            grid: new_grid,
+            coordinates: Self::coordinates(&new_grid),
+        }
+    }
+
+    fn coordinates(grid: &[[bool; DIM]; DIM]) -> Vec<Coordinate> {
+        (0..DIM)
+            .flat_map(|row| (0..DIM).map(move |col| Coordinate { row, col }))
+            .filter(|coord| grid[coord.row][coord.col])
+            .collect()
     }
 }
 
 impl Region {
-    fn new(region: &str) -> Self {
+    pub fn new(region: &str) -> Self {
         static RE: LazyLock<Regex> = LazyLock::new(|| {
             Regex::new(r"^(?<width>\d+)x(?<height>\d+): (?<shape_counts>.*)$").unwrap()
         });
@@ -97,12 +159,131 @@ impl Region {
             shape_counts,
         }
     }
+
+    pub fn can_fit(&self, shapes: &[Shape]) -> bool {
+        if self.can_fit_heuristic() {
+            return true;
+        }
+
+        let mut grid = vec![vec![false; self.width]; self.height];
+        let shapes_to_place = self
+            .shape_counts
+            .iter()
+            .enumerate()
+            .flat_map(|(shape_idx, &count)| {
+                (0..count).map(move |_| shapes[shape_idx].transformations())
+            })
+            .collect_vec();
+
+        self.backtrack(&mut grid, &shapes_to_place, 0)
+    }
+
+    pub fn can_fit_heuristic(&self) -> bool {
+        let shapes_max = (self.width / DIM) * (self.height / DIM);
+        let shapes_required = self.shape_counts.iter().sum::<usize>();
+
+        shapes_max >= shapes_required
+    }
+
+    fn backtrack(
+        &self,
+        grid: &mut Vec<Vec<bool>>,
+        shapes: &[Vec<Shape>],
+        shape_idx: usize,
+    ) -> bool {
+        if shape_idx >= shapes.len() {
+            return true;
+        }
+
+        for shape in &shapes[shape_idx] {
+            for row_origin in 0..self.height {
+                for col_origin in 0..self.width {
+                    if self.can_place_shape(grid, &shape.coordinates, row_origin, col_origin) {
+                        self.place_shape(
+                            grid,
+                            &shape.coordinates,
+                            row_origin,
+                            col_origin,
+                            Placement::Place,
+                        );
+
+                        if self.backtrack(grid, shapes, shape_idx + 1) {
+                            return true;
+                        }
+
+                        self.place_shape(
+                            grid,
+                            &shape.coordinates,
+                            row_origin,
+                            col_origin,
+                            Placement::Remove,
+                        );
+                    }
+                }
+            }
+        }
+
+        false
+    }
+
+    fn can_place_shape(
+        &self,
+        grid: &[Vec<bool>],
+        coords: &[Coordinate],
+        row_origin: usize,
+        col_origin: usize,
+    ) -> bool {
+        for Coordinate {
+            row: row_delta,
+            col: col_delta,
+        } in coords
+        {
+            let row = row_origin + row_delta;
+            let col = col_origin + col_delta;
+
+            // Out of bounds
+            if row >= self.height || col >= self.width {
+                return false;
+            }
+
+            // Already occupied
+            if grid[row][col] {
+                return false;
+            }
+        }
+
+        true
+    }
+
+    fn place_shape(
+        &self,
+        grid: &mut [Vec<bool>],
+        coords: &[Coordinate],
+        row_origin: usize,
+        col_origin: usize,
+        placement: Placement,
+    ) {
+        for Coordinate {
+            row: row_delta,
+            col: col_delta,
+        } in coords
+        {
+            let row = row_origin + row_delta;
+            let col = col_origin + col_delta;
+
+            grid[row][col] = match placement {
+                Placement::Place => true,
+                Placement::Remove => false,
+            };
+        }
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    #[ignore = "Backtracking algorithm is very slow (+-45s on a MBP M1 Max)"]
     #[test]
     fn day_12_part_01_sample() {
         let sample = "\
