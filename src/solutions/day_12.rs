@@ -30,6 +30,10 @@ pub fn solve_1(summary: &str, simple: bool) -> usize {
     }
 }
 
+pub fn solve_2() {
+    // Decorate the North Pole
+}
+
 #[derive(Debug, Clone)]
 struct Shape {
     idx: usize,
@@ -145,5 +149,15 @@ mod tests {
         let input = include_str!("../../inputs/day_12.txt").trim();
 
         assert_eq!(565, solve_1(input, true));
+    }
+
+    #[test]
+    fn day_12_part_02_sample() {
+        solve_2();
+    }
+
+    #[test]
+    fn day_12_part_02_solution() {
+        solve_2();
     }
 }
