@@ -30,5 +30,5 @@ z3 = "0.19.6"
 criterion = { version = "0.8.1", features = ["html_reports"] }
 
 [[bench]]
-name = "day_08_bench"
+name = "day_09_bench"
 harness = false

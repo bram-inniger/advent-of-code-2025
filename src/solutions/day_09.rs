@@ -1,4 +1,5 @@
 use itertools::Itertools;
+use rayon::prelude::*;
 use rustc_hash::FxHashSet;
 use std::ops::Not;
 
@@ -47,17 +48,12 @@ pub fn solve_2(red_tiles: &[&str]) -> u64 {
         .collect_vec();
     let red_tiles = red_tiles.into_iter().collect();
 
-    let mut max_area = 0;
-    for rectangle in &rectangles {
-        if rectangle.area() <= max_area {
-            continue;
-        }
-        if rectangle.is_within(&edges, &red_tiles) {
-            max_area = rectangle.area();
-        }
-    }
-
-    max_area
+    rectangles
+        .par_iter()
+        .filter(|rectangle| rectangle.is_within(&edges, &red_tiles))
+        .map(|rectangle| rectangle.area())
+        .max()
+        .unwrap()
 }
 
 #[derive(Debug, Copy, Clone, Ord, PartialOrd, Eq, PartialEq, Hash)]
